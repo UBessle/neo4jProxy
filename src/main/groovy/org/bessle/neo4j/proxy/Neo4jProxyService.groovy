@@ -1,7 +1,10 @@
 package org.bessle.neo4j.proxy
 
 import groovyx.net.http.RESTClient
- 
+import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
+
+@Component
 class Neo4jProxyService {
 	// inject GrailsApplication to obtain configuration properties for RESTClient endpoint
 	// GrailsApplication application

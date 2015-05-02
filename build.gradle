@@ -1,0 +1,47 @@
+apply plugin: "groovy"
+apply plugin: "spring-boot"
+apply plugin: "application"
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
+
+version = "${version}"
+group = "${group}"
+mainClassName = "org.bessle.neo4j.proxy.Application"
+
+buildscript {
+    ext {
+        springBootVersion = '1.2.3.RELEASE'
+    }    
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+jar {
+    baseName = 'spring-boot-sample-actuator'
+    version =  '1.0.0'
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.codehaus.groovy:groovy"
+    compile "org.codehaus.groovy:groovy-xml"
+    compile "org.codehaus.groovy:groovy-json"
+    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+    compile "org.codehaus.groovy.modules.http-builder:http-builder:0.7.2"
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}

@@ -2,6 +2,7 @@
 build/
 target/
 DS_Store
-.class
+*.class
 .gradle/
+*.iml
 

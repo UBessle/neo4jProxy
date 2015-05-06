@@ -1,6 +1,7 @@
 package org.bessle.neo4j.proxy
 
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RequestMapping
@@ -62,5 +63,31 @@ class Neo4jProxyController {
         */
     }
 
+    @RequestMapping(value = "/cypher3", method = RequestMethod.POST)
+    ResponseEntity<String> cypher2(HttpEntity<String> clientCypherRequest) {
+            println "Neo4jProxyController.cypher3()"
+        String clientRequestCypher = clientCypherRequest.body
+        HttpHeaders clientRequestHeaders = clientCypherRequest.headers
+            println "requestCypher: ${clientRequestCypher}"
+            clientRequestHeaders.each {
+                println "    ${it.toString()}"
+            }
+        def backendResponse = neo4jProxyService.getCypherResult2(clientRequestCypher, clientRequestHeaders)
+            println "response.status: ${backendResponse.status}"
+            println "response.data: ${backendResponse.data}"
+
+            println "response.headers: "
+        HttpHeaders clientResponseHeaders = new HttpHeaders()
+        backendResponse.headers.each() {
+                println "    ${it.toString()}"
+            clientResponseHeaders.add(it.name, it.value)
+        }
+
+        def clientResponse = ResponseEntity
+                .status(backendResponse.status)
+                .headers(clientResponseHeaders)
+                .body(backendResponse.data)
+        return clientResponse
+    }
 
 }

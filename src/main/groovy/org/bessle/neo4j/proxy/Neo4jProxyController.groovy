@@ -1,5 +1,7 @@
 package org.bessle.neo4j.proxy
 
+import groovy.util.logging.Slf4j
+import org.apache.http.HttpResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpStatus
 
 @RestController
 @RequestMapping("/db/data")
+@Slf4j
 class Neo4jProxyController {
 	static responseFormats = ['json']
 
@@ -72,21 +75,24 @@ class Neo4jProxyController {
             clientRequestHeaders.each {
                 println "    ${it.toString()}"
             }
-        def backendResponse = neo4jProxyService.getCypherResult2(clientRequestCypher, clientRequestHeaders)
-            println "response.status: ${backendResponse.status}"
-            println "response.data: ${backendResponse.data}"
+        HttpResponse backendResponse = neo4jProxyService.getCypherResult2(clientRequestCypher, clientRequestHeaders)
+            println "backend response.status: ${backendResponse.status}"
+            println "backend response.data: ${backendResponse.data}"
 
-            println "response.headers: "
+            println "backend response.headers: "
         HttpHeaders clientResponseHeaders = new HttpHeaders()
-        backendResponse.headers.each() {
-                println "    ${it.toString()}"
-            clientResponseHeaders.add(it.name, it.value)
-        }
+        HttpUtil.copyResponseHeaders(
+                backendResponse.headers,
+                clientResponseHeaders,
+                [HttpHeaders.CONTENT_LENGTH],
+                ["X-Test": "1234", "Cache-Control":"max-age=1000"]
+        )
+        clientResponseHeaders.setCacheControl("max-age=9876")
 
-        def clientResponse = ResponseEntity
-                .status(backendResponse.status)
-                .headers(clientResponseHeaders)
-                .body(backendResponse.data)
+        def clientResponse = new ResponseEntity<String>(backendResponse.data, clientResponseHeaders, HttpStatus.valueOf(backendResponse.status))
+        clientResponse.headers.each { def header ->
+            log.debug("clientResponseHeaders: ${header}")
+        }
         return clientResponse
     }
 

@@ -17,11 +17,12 @@
 package org.bessle.neo4j.proxy
 
 import org.springframework.boot.SpringApplication
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration
-import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.cache.CacheManager
+import org.springframework.cache.annotation.EnableCaching
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
-import org.springframework.context.annotation.Configuration
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController
 @ComponentScan("org.bessle.neo4j.proxy")
 @RestController
 @SpringBootApplication
+@EnableCaching
 class Application {
 
 	@RequestMapping("/")
@@ -40,5 +42,11 @@ class Application {
 	static void main(String[] args) throws Exception {
 		SpringApplication.run(Application.class, args)
 	}
+
+    @Bean
+    public CacheManager cacheManager() {
+        // configure and return an implementation of Spring's CacheManager SPI
+        return new ConcurrentMapCacheManager("neo4j");
+    }
 
 }

@@ -34,14 +34,14 @@ class HttpUtil {
     }
 
     Map copyRequestHeaders(HttpHeaders clientRequestHeaders, List blacklist=[], Map additionalHeaders = [:]) {
-        log.debug("copyRequestHeaders(... , ${blacklist} , ${additionalHeaders})")
+        log.trace("copyRequestHeaders(... , ${blacklist} , ${additionalHeaders})")
         Map copiedRequestHeaders = [:]
         clientRequestHeaders.each() { String headerName, def headerValues ->
             if ( headerName in blacklist ) {
-                log.debug("copyRequestHeaders(): do not copy header ${headerName}: ${headerValues}")
+                log.trace("copyRequestHeaders(): do not copy header ${headerName}: ${headerValues}")
             } else {
                 copiedRequestHeaders[headerName] = headerValues[0]
-                log.debug("copyRequestHeaders(): copy header ${headerName}: ${headerValues}")
+                log.trace("copyRequestHeaders(): copy header ${headerName}: ${headerValues}")
                 if (headerValues.size() > 1) {
                     List nonCopiedHeaderValues = headerValues.remove(0)
                     log.warn("copyRequestHeaders(): do not copy header Values ${headerName}: ${nonCopiedHeaderValues}")
@@ -49,7 +49,7 @@ class HttpUtil {
             }
         }
         copiedRequestHeaders.putAll(additionalHeaders)
-        log.debug("copiedRequestHeaders(): ${copiedRequestHeaders}")
+        log.trace("copiedRequestHeaders(): ${copiedRequestHeaders}")
 
         return copiedRequestHeaders
     }

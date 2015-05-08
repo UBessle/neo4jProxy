@@ -22,21 +22,17 @@ class Neo4jProxyService {
         log.debug("getCypherResult(${requestCypher}, ${clientRequestHeaders})")
         Map backendRequestHeaders = httpUtil.copyRequestHeaders(
                 clientRequestHeaders,
-                ["user-agent","accept-language", "accept-encoding", "content-length"],
+                ["content-length", "host"],
                 ["accept" : "application/json; charset=UTF-8"]
         )
-        // backendRequestHeaders['accept'] = "application/json; charset=UTF-8"
-        /*
-        clientRequestHeaders.each() { String headerName, def headerValues ->
-            println "client request header - ${headerName} : ${headerValues}"
-            if (headerName in ["user-agent","accept-language", "accept-encoding"] ) {
-                backendRequestHeaders[headerName] = headerValues[0]
-                println "add backend request header - ${headerName} : ${headerValues[0]}"
-            }
-        }
-        */
-        log.debug("client.post(path: '/db/data/cypher', body: ${requestCypher}, headers: ${backendRequestHeaders})")
-        HttpResponse response = client.post(path: '/db/data/cypher', body: requestCypher, headers: backendRequestHeaders)
+
+        log.trace("client.post(path: '/db/data/cypher', body: ${requestCypher}, headers: ${backendRequestHeaders})")
+        HttpResponse response = client.post(
+                path: '/db/data/cypher',
+                body: requestCypher,
+                headers: backendRequestHeaders
+        )
+
         log.debug("getCypherResult(): response=${response}")
         return response
     }

@@ -22,7 +22,7 @@ class Neo4jProxyService {
         log.debug("getCypherResult(${requestCypher}, ${clientRequestHeaders})")
         Map backendRequestHeaders = httpUtil.copyRequestHeaders(
                 clientRequestHeaders,
-                ["user-agent","accept-language", "accept-encoding"],
+                ["user-agent","accept-language", "accept-encoding", "content-length"],
                 ["accept" : "application/json; charset=UTF-8"]
         )
         // backendRequestHeaders['accept'] = "application/json; charset=UTF-8"

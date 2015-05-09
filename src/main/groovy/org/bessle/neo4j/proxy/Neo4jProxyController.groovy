@@ -1,6 +1,7 @@
 package org.bessle.neo4j.proxy
 
 import groovy.util.logging.Slf4j
+import groovyx.net.http.HttpResponseDecorator
 import org.apache.http.HttpResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpEntity
@@ -28,7 +29,7 @@ class Neo4jProxyController {
         HttpHeaders clientRequestHeaders = clientCypherRequest.headers
 
         // forward client request to backend
-        HttpResponse backendResponse = neo4jProxyService.getCypherResult(clientRequestCypher, clientRequestHeaders)
+        HttpResponseDecorator backendResponse = neo4jProxyService.getCypherResult(clientRequestCypher, clientRequestHeaders)
         String clientResponseBody = backendResponse.data
         HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
 
@@ -36,9 +37,11 @@ class Neo4jProxyController {
         HttpHeaders clientResponseHeaders = httpUtil.copyResponseHeaders(
                 backendResponse.headers,
                 [HttpHeaders.CONTENT_LENGTH],
-                ["X-Test": "1234", "Cache-Control":"max-age=1000"]
+                ["X-Test": "1234"]
         )
-        clientResponseHeaders.setCacheControl("max-age=9876")
+        if (backendResponse.isSuccess()) {
+            clientResponseHeaders.setCacheControl("max-age=3600")
+        }
         log.debug("clientResponseHeaders: ${clientResponseHeaders}")
 
         // return response

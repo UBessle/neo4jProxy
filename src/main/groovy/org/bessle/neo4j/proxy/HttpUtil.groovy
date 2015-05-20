@@ -2,8 +2,9 @@ package org.bessle.neo4j.proxy
 
 import org.apache.http.Header
 import org.springframework.http.HttpHeaders
-import groovy.util.logging.Slf4j
 import org.springframework.stereotype.Component
+
+import groovy.util.logging.Slf4j
 
 
 /**

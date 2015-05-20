@@ -23,13 +23,25 @@ class Neo4jProxyController {
     HttpUtil httpUtil
 
     @RequestMapping(value = "/cypher", method = RequestMethod.POST)
-    ResponseEntity<String> cypher(HttpEntity<String> clientCypherRequest) {
+    ResponseEntity<String> postCypher(HttpEntity<String> clientCypherRequest) {
+        log.info("postCypher")
+        return handleRequest(clientCypherRequest, RequestMethod.POST)
+
+    }
+
+    @RequestMapping(value = "/cypher", method = RequestMethod.OPTIONS)
+    ResponseEntity<String> optionsCypher(HttpEntity<String> clientCypherRequest) {
+        log.info("optionsCypher")
+        return handleRequest(clientCypherRequest, RequestMethod.OPTIONS)
+    }
+
+    private ResponseEntity<String> handleRequest(HttpEntity<String> clientCypherRequest, RequestMethod clientRequestMethod) {
         // extract call parameter values
         String clientRequestCypher = clientCypherRequest.body
         HttpHeaders clientRequestHeaders = clientCypherRequest.headers
 
         // forward client request to backend
-        HttpResponseDecorator backendResponse = neo4jProxyService.getCypherResult(clientRequestCypher, clientRequestHeaders)
+        HttpResponseDecorator backendResponse = neo4jProxyService.getCypherResult(clientRequestCypher, clientRequestHeaders, clientRequestMethod)
         String clientResponseBody = backendResponse.data
         HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
 

@@ -16,6 +16,9 @@
 
 package org.bessle.neo4j.proxy
 
+import groovy.util.logging.Slf4j
+import groovyx.net.http.RESTClient
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.cache.CacheManager
@@ -32,7 +35,10 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @SpringBootApplication
 @EnableCaching
+@Slf4j
 class Application {
+    @Value('${neo4j.server.url}')
+    String neo4jServerUrl
 
 	@RequestMapping("/")
 	def helloWorld() {
@@ -41,6 +47,12 @@ class Application {
 
 	static void main(String[] args) throws Exception {
 		SpringApplication.run(Application.class, args)
+	}
+
+	@Bean
+	public RESTClient restClient() {
+        log.info("Application: create restClient for ${neo4jServerUrl}")
+		return new RESTClient( neo4jServerUrl, 'application/json' )
 	}
 
     @Bean

@@ -5,8 +5,8 @@ apply plugin: "application"
 sourceCompatibility = "1.7"
 targetCompatibility = "1.7"
 
-version = "${version}"
-group = "${group}"
+version = "1.0.0"
+group = "org.bessle"
 mainClassName = "org.bessle.neo4j.proxy.Application"
 
 buildscript {
@@ -23,8 +23,8 @@ buildscript {
 }
 
 jar {
-    baseName = 'spring-boot-sample-actuator'
-    version =  '1.0.0'
+    baseName = 'neo4jProxy'
+    version =  "${version}"
 }
 
 repositories {
@@ -40,6 +40,9 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-actuator"
     testCompile "org.springframework.boot:spring-boot-starter-test"
     compile "org.codehaus.groovy.modules.http-builder:http-builder:0.7.2"
+    compile "org.apache.httpcomponents:httpclient:4.4.1"
+    compile "com.google.code.gson:gson:2.3.1"
+    compile "commons-io:commons-io:2.4"
 }
 
 task wrapper(type: Wrapper) {

@@ -18,6 +18,8 @@ package org.bessle.neo4j.proxy
 
 import groovy.util.logging.Slf4j
 import groovyx.net.http.RESTClient
+import org.apache.http.conn.ClientConnectionManager
+import org.apache.http.impl.conn.PoolingClientConnectionManager
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -37,23 +39,33 @@ import org.springframework.web.bind.annotation.RestController
 @EnableCaching
 @Slf4j
 class Application {
-    @Value('${neo4j.server.url}')
-    String neo4jServerUrl
-
 	@RequestMapping("/")
 	def helloWorld() {
 		[message: "Hello World"]
 	}
 
-	static void main(String[] args) throws Exception {
+    @Value('${neo4j.server.url}')
+    String neo4jServerUrl
+
+    static void main(String[] args) throws Exception {
 		SpringApplication.run(Application.class, args)
 	}
 
 	@Bean
-	public RESTClient restClient() {
-        log.info("Application: create restClient for ${neo4jServerUrl}")
-		return new RESTClient( neo4jServerUrl, 'application/json' )
+	public ClientConnectionManager clientConnectionManager() {
+        log.info("Application: create ConnectionManager")
+        PoolingClientConnectionManager connManager = new PoolingClientConnectionManager()
+        connManager.setMaxTotal(200) // default is 20
+        connManager.setDefaultMaxPerRoute(100) // default is 2
+        return connManager
 	}
+
+    @Bean
+    public RESTClient restClient() {
+        MultithreadedRESTClient neo4jClient = new MultithreadedRESTClient( neo4jServerUrl, 'application/json' )
+        neo4jClient.connManager = clientConnectionManager()
+        return neo4jClient
+    }
 
     @Bean
     public CacheManager cacheManager() {

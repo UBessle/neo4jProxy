@@ -1,5 +1,7 @@
 package org.bessle.neo4j.proxy
 
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import groovy.util.logging.Slf4j
 import groovyx.net.http.HttpResponseDecorator
 import org.apache.http.HttpResponse
@@ -42,7 +44,9 @@ class Neo4jProxyController {
 
         // forward client request to backend
         HttpResponseDecorator backendResponse = neo4jProxyService.getCypherResult(clientRequestCypher, clientRequestHeaders, clientRequestMethod)
-        String clientResponseBody = backendResponse.data
+        Gson gson = new GsonBuilder().create()
+        String clientResponseBody = gson.toJson(backendResponse.data)
+        log.info("clientResponseBody=${clientResponseBody} of type ${clientResponseBody.getClass().getName()}")
         HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
 
         // construct client response headers

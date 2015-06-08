@@ -28,6 +28,9 @@ jar {
 }
 
 repositories {
+        maven {
+            url EOS_PUBLIC_REPOSITORY_URL
+        }
     jcenter()
     mavenCentral()
 }
@@ -47,4 +50,6 @@ dependencies {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.3'
+    distributionUrl = "http://maven-repo01/content/repositories/releases/gradle-distribution/2.3-eos/gradle-2.3-eos.zip"
+
 }

@@ -14,6 +14,9 @@ buildscript {
         springBootVersion = '1.2.3.RELEASE'
     }    
     repositories {
+        maven {
+            url EOS_PUBLIC_REPOSITORY_URL
+        }
         jcenter()
         mavenCentral()
     }
@@ -28,9 +31,9 @@ jar {
 }
 
 repositories {
-        maven {
-            url EOS_PUBLIC_REPOSITORY_URL
-        }
+    maven {
+        url EOS_PUBLIC_REPOSITORY_URL
+    }
     jcenter()
     mavenCentral()
 }

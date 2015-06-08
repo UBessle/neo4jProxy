@@ -28,6 +28,7 @@ import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
@@ -36,6 +37,8 @@ import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.web.ErrorAttributes;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.support.HttpRequestWrapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -83,7 +86,8 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter implements Or
 			HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
-		Map<String, Object> trace = getTrace(request);
+        HttpServletRequestWrapper wrappedRequest = new HttpServletRequestWrapper(request);
+		Map<String, Object> trace = getTrace(wrappedRequest);
 		if (this.logger.isTraceEnabled()) {
 			this.logger.trace("Processing request " + request.getMethod() + " "
 					+ request.getRequestURI());
@@ -97,7 +101,7 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter implements Or
 		}
 
 		try {
-			filterChain.doFilter(request, response);
+			filterChain.doFilter(wrappedRequest, response);
         } finally {
 			enhanceTrace(trace, response);
 		}
@@ -115,14 +119,14 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter implements Or
 		allHeaders.put("response", headers);
 	}
 
-	protected Map<String, Object> getTrace(HttpServletRequest request) {
+	protected Map<String, Object> getTrace(HttpServletRequestWrapper wrappedRequest) {
 
 		Map<String, Object> headers = new LinkedHashMap<String, Object>();
-		Enumeration<String> names = request.getHeaderNames();
+		Enumeration<String> names = wrappedRequest.getHeaderNames();
 
 		while (names.hasMoreElements()) {
 			String name = names.nextElement();
-			List<String> values = Collections.list(request.getHeaders(name));
+			List<String> values = Collections.list(wrappedRequest.getHeaders(name));
 			Object value = values;
 			if (values.size() == 1) {
 				value = values.get(0);
@@ -136,23 +140,23 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter implements Or
 		Map<String, Object> trace = new LinkedHashMap<String, Object>();
 		Map<String, Object> allHeaders = new LinkedHashMap<String, Object>();
 		allHeaders.put("request", headers);
-		trace.put("method", request.getMethod());
-		trace.put("path", request.getRequestURI());
+		trace.put("method", wrappedRequest.getMethod());
+		trace.put("path", wrappedRequest.getRequestURI());
 		trace.put("headers", allHeaders);
-		Throwable exception = (Throwable) request
+		Throwable exception = (Throwable) wrappedRequest
 				.getAttribute("javax.servlet.error.exception");
 		if (exception != null && this.errorAttributes != null) {
-			RequestAttributes requestAttributes = new ServletRequestAttributes(request);
+			RequestAttributes requestAttributes = new ServletRequestAttributes(wrappedRequest);
 			Map<String, Object> error = this.errorAttributes.getErrorAttributes(
 					requestAttributes, true);
 			trace.put("error", error);
 		}
-        String body;
+        String body = "unknown";
         try {
-            body = IOUtils.toString(request.getInputStream(), "UTF-8");
+            //body = IOUtils.toString(wrappedRequest.getInputStream(), "UTF-8");
             trace.put("body", body);
             InputStream wrappedInputStream = IOUtils.toInputStream(body, "UTF-8");
-            // request.setInputStream(wrappedInputStream)
+            //wrappedRequest.
         } catch (IOException ioe) {
             trace.put("body", "untraceable");
         }

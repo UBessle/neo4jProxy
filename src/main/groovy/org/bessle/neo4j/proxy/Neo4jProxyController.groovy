@@ -4,7 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import groovy.util.logging.Slf4j
 import groovyx.net.http.HttpResponseDecorator
-import org.apache.http.HttpResponse
+import org.bessle.neo4j.proxy.util.HttpUtil
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders;
@@ -37,13 +37,20 @@ class Neo4jProxyController {
         return handleRequest(clientCypherRequest, RequestMethod.OPTIONS)
     }
 
+    @RequestMapping(method = RequestMethod.GET)
+    ResponseEntity<String> get(HttpEntity<String> clientRequest) {
+        log.info("get")
+        return handleRequest(clientRequest, RequestMethod.GET)
+    }
+
+
     private ResponseEntity<String> handleRequest(HttpEntity<String> clientCypherRequest, RequestMethod clientRequestMethod) {
         // extract call parameter values
         String clientRequestCypher = clientCypherRequest.body
         HttpHeaders clientRequestHeaders = clientCypherRequest.headers
 
         // forward client request to backend
-        HttpResponseDecorator backendResponse = neo4jProxyService.getCypherResult(clientRequestCypher, clientRequestHeaders, clientRequestMethod)
+        HttpResponseDecorator backendResponse = neo4jProxyService.postCypher(clientRequestCypher, clientRequestHeaders, clientRequestMethod)
         Gson gson = new GsonBuilder().create()
         String clientResponseBody = gson.toJson(backendResponse.data)
         log.info("clientResponseBody=${clientResponseBody} of type ${clientResponseBody.getClass().getName()}")

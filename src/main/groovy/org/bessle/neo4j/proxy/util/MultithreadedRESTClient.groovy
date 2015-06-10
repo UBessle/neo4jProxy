@@ -1,4 +1,4 @@
-package org.bessle.neo4j.proxy
+package org.bessle.neo4j.proxy.util
 
 import groovyx.net.http.RESTClient
 import org.apache.http.client.HttpClient

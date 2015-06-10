@@ -1,4 +1,4 @@
-package org.bessle.neo4j.proxy;
+package org.bessle.neo4j.proxy.util;
 
 import javax.servlet.Filter
 import javax.servlet.FilterChain

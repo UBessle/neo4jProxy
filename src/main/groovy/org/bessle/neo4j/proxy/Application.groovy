@@ -20,6 +20,7 @@ import groovy.util.logging.Slf4j
 import groovyx.net.http.RESTClient
 import org.apache.http.conn.ClientConnectionManager
 import org.apache.http.impl.conn.PoolingClientConnectionManager
+import org.bessle.neo4j.proxy.util.MultithreadedRESTClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication

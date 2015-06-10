@@ -1,4 +1,4 @@
-package org.bessle.neo4j.proxy
+package org.bessle.neo4j.proxy.util
 
 import org.apache.http.Header
 import org.springframework.http.HttpHeaders

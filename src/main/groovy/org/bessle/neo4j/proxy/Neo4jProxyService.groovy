@@ -5,7 +5,7 @@ import groovyx.net.http.HttpResponseException
 import groovyx.net.http.RESTClient
 import org.apache.http.HttpResponse
 import org.apache.http.MethodNotSupportedException
-import org.apache.http.conn.ClientConnectionManager
+import org.bessle.neo4j.proxy.util.HttpUtil
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpHeaders
@@ -22,8 +22,8 @@ class Neo4jProxyService {
     RESTClient neo4jClient
 
     @Cacheable(value="neo4j", key="#requestCypher.hashCode()"/*, condition="#requestCypher.contains('match')"*/, unless="#result.status!=200")
-    HttpResponse getCypherResult(String requestCypher, HttpHeaders clientRequestHeaders, RequestMethod clientRequestMethod) {
-        log.debug("getCypherResult(requestCypher=${requestCypher} type=${requestCypher.getClass().getName()}, clientRequestHeaders=${clientRequestHeaders})")
+    HttpResponse postCypher(String requestCypher, HttpHeaders clientRequestHeaders, RequestMethod clientRequestMethod) {
+        log.debug("postCypher(requestCypher=${requestCypher} type=${requestCypher.getClass().getName()}, clientRequestHeaders=${clientRequestHeaders})")
         Map backendRequestHeaders = httpUtil.copyRequestHeaders(
                 clientRequestHeaders,
                 ["content-length", "host"],
@@ -52,7 +52,7 @@ class Neo4jProxyService {
                     throw new MethodNotSupportedException("method ${clientRequestMethod} is not supported by neo4jProxy")
             }
 
-            log.debug("getCypherResult(): response=${response}")
+            log.debug("postCypher(): response=${response}")
             return response
         } catch (HttpResponseException hrex) {
             log.warn("neo4jClient.post did not succeed, caught HttpResponseException", hrex)

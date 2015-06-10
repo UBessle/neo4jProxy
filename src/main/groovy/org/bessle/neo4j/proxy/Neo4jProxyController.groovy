@@ -27,14 +27,14 @@ class Neo4jProxyController {
     @RequestMapping(value = "/cypher", method = RequestMethod.POST)
     ResponseEntity<String> postCypher(HttpEntity<String> clientCypherRequest) {
         log.info("postCypher")
-        return handleRequest(clientCypherRequest, RequestMethod.POST)
+        return handleCypherRequest(clientCypherRequest, RequestMethod.POST)
 
     }
 
     @RequestMapping(value = "/cypher", method = RequestMethod.OPTIONS)
     ResponseEntity<String> optionsCypher(HttpEntity<String> clientCypherRequest) {
         log.info("optionsCypher")
-        return handleRequest(clientCypherRequest, RequestMethod.OPTIONS)
+        return handleCypherRequest(clientCypherRequest, RequestMethod.OPTIONS)
     }
 
     @RequestMapping(method = RequestMethod.GET)
@@ -44,7 +44,7 @@ class Neo4jProxyController {
     }
 
 
-    private ResponseEntity<String> handleRequest(HttpEntity<String> clientCypherRequest, RequestMethod clientRequestMethod) {
+    private ResponseEntity<String> handleCypherRequest(HttpEntity<String> clientCypherRequest, RequestMethod clientRequestMethod) {
         // extract call parameter values
         String clientRequestCypher = clientCypherRequest.body
         HttpHeaders clientRequestHeaders = clientCypherRequest.headers
@@ -75,4 +75,35 @@ class Neo4jProxyController {
         )
     }
 
+    private ResponseEntity<String> handleRequest(HttpEntity<String> clientRequest, RequestMethod clientRequestMethod) {
+        // extract call parameter values
+        String clientRequestBody = clientRequest.body
+        HttpHeaders clientRequestHeaders = clientRequest.headers
+        String clientRequestUri //= clientRequest.getURI()
+
+        // forward client request to backend
+        HttpResponseDecorator backendResponse = neo4jProxyService.doRequest(clientRequestUri, clientRequestHeaders, clientRequestMethod, clientRequestBody)
+        Gson gson = new GsonBuilder().create()
+        String clientResponseBody = gson.toJson(backendResponse.data)
+        log.info("clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
+        HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
+
+        // construct client response headers
+        HttpHeaders clientResponseHeaders = httpUtil.copyResponseHeaders(
+                backendResponse.headers,
+                [HttpHeaders.CONTENT_LENGTH],
+                ["X-Test": "1234"]
+        )
+        if (backendResponse.isSuccess()) {
+            clientResponseHeaders.setCacheControl("max-age=3600")
+        }
+        log.debug("clientResponseHeaders: ${clientResponseHeaders}")
+
+        // return response
+        return new ResponseEntity<String>(
+                clientResponseBody,
+                clientResponseHeaders,
+                clientResponseStatus
+        )
+    }
 }

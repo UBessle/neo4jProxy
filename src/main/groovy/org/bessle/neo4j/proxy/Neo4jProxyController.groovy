@@ -53,7 +53,7 @@ class Neo4jProxyController {
         HttpResponseDecorator backendResponse = neo4jProxyService.postCypher(clientRequestCypher, clientRequestHeaders, clientRequestMethod)
         Gson gson = new GsonBuilder().create()
         String clientResponseBody = gson.toJson(backendResponse.data)
-        log.info("clientResponseBody=${clientResponseBody} of type ${clientResponseBody.getClass().getName()}")
+        log.info("clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
         HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
 
         // construct client response headers

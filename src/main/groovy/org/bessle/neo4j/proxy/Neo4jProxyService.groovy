@@ -21,7 +21,7 @@ class Neo4jProxyService {
     @Autowired
     RESTClient neo4jClient
 
-    @Cacheable(value="neo4j", key="#requestCypher.hashCode()"/*, condition="#requestCypher.contains('match')"*/, unless="#result.status!=200")
+    @Cacheable(value="neo4j", key="#requestCypher.hashCode()", condition="#requestCypher.contains('match')", unless="#result.status!=200")
     HttpResponse postCypher(String requestCypher, HttpHeaders clientRequestHeaders, RequestMethod clientRequestMethod) {
         log.debug("postCypher(requestCypher=${requestCypher} type=${requestCypher.getClass().getName()}, clientRequestHeaders=${clientRequestHeaders})")
         Map backendRequestHeaders = httpUtil.copyRequestHeaders(

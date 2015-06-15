@@ -2,17 +2,25 @@ package org.bessle.neo4j.proxy
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import groovy.json.JsonOutput
 import groovy.util.logging.Slf4j
 import groovyx.net.http.HttpResponseDecorator
+import org.apache.http.HttpResponse
 import org.bessle.neo4j.proxy.util.HttpUtil
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpEntity
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.http.ResponseEntity
 import org.springframework.http.HttpStatus
+
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 @RestController
 @RequestMapping("/db/data")
@@ -37,10 +45,45 @@ class Neo4jProxyController {
         return handleCypherRequest(clientCypherRequest, RequestMethod.OPTIONS)
     }
 
-    @RequestMapping(method = RequestMethod.GET)
-    ResponseEntity<String> get(HttpEntity<String> clientRequest) {
-        log.info("get")
-        return handleRequest(clientRequest, RequestMethod.GET)
+    @RequestMapping(value = "*")
+    ResponseEntity<String>  proxyRequest(HttpServletRequest clientRequest,
+                            @RequestHeader HttpHeaders clientRequestHeaders,
+                            HttpMethod clientRequestMethod,
+                            @RequestBody clientRequestBody) {
+        log.info("clientRequestMethod =${clientRequestMethod}")
+        String clientRequestURI = clientRequest.getRequestURI()
+        log.info("clientRequestURI = ${clientRequestURI}")
+        String requestURL = clientRequest.getRequestURL()
+        log.info("requestURL = ${requestURL}")
+        String servletPath = clientRequest.getServletPath();
+        log.info("servletPath = ${servletPath}")
+
+        HttpResponseDecorator backendResponse = neo4jProxyService.doNeo4jRequest(clientRequestURI, clientRequestHeaders, clientRequestMethod, clientRequestBody)
+        if (clientRequestMethod.toString() in ['POST','PUT','PATCH','DELETE']) {
+            neo4jProxyService.clearCache()
+        }
+
+        String clientResponseBody = JsonOutput.toJson(backendResponse.data)
+        log.info("proxyRequest(): clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
+        HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
+
+        // construct client response headers
+        HttpHeaders clientResponseHeaders = httpUtil.copyResponseHeaders(
+                backendResponse.headers,
+                [HttpHeaders.CONTENT_LENGTH],
+                ["X-Test": "1234"]
+        )
+        if (backendResponse.isSuccess() && clientRequestMethod.toString() in ['GET','HEAD','OPTIONS']) {
+            clientResponseHeaders.setCacheControl("max-age=3600")
+        }
+        log.debug("proxyRequest(): clientResponseHeaders: ${clientResponseHeaders}")
+
+        // return response
+        return new ResponseEntity<String>(
+                clientResponseBody,
+                clientResponseHeaders,
+                clientResponseStatus
+        )
     }
 
 
@@ -51,8 +94,7 @@ class Neo4jProxyController {
 
         // forward client request to backend
         HttpResponseDecorator backendResponse = neo4jProxyService.postCypher(clientRequestCypher, clientRequestHeaders, clientRequestMethod)
-        Gson gson = new GsonBuilder().create()
-        String clientResponseBody = gson.toJson(backendResponse.data)
+        String clientResponseBody = JsonOutput.toJson(backendResponse.data)
         log.info("clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
         HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
 
@@ -75,35 +117,4 @@ class Neo4jProxyController {
         )
     }
 
-    private ResponseEntity<String> handleRequest(HttpEntity<String> clientRequest, RequestMethod clientRequestMethod) {
-        // extract call parameter values
-        String clientRequestBody = clientRequest.body
-        HttpHeaders clientRequestHeaders = clientRequest.headers
-        String clientRequestUri //= clientRequest.getURI()
-
-        // forward client request to backend
-        HttpResponseDecorator backendResponse = neo4jProxyService.doRequest(clientRequestUri, clientRequestHeaders, clientRequestMethod, clientRequestBody)
-        Gson gson = new GsonBuilder().create()
-        String clientResponseBody = gson.toJson(backendResponse.data)
-        log.info("clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
-        HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
-
-        // construct client response headers
-        HttpHeaders clientResponseHeaders = httpUtil.copyResponseHeaders(
-                backendResponse.headers,
-                [HttpHeaders.CONTENT_LENGTH],
-                ["X-Test": "1234"]
-        )
-        if (backendResponse.isSuccess()) {
-            clientResponseHeaders.setCacheControl("max-age=3600")
-        }
-        log.debug("clientResponseHeaders: ${clientResponseHeaders}")
-
-        // return response
-        return new ResponseEntity<String>(
-                clientResponseBody,
-                clientResponseHeaders,
-                clientResponseStatus
-        )
-    }
 }

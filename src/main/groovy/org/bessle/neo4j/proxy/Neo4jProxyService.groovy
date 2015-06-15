@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
 import org.springframework.stereotype.Service
 import org.springframework.web.bind.annotation.RequestMethod
 
@@ -23,7 +24,7 @@ class Neo4jProxyService {
     RESTClient neo4jClient
 
     @Cacheable(value="neo4j", key="#requestCypher.hashCode()", condition="(#requestCypher.contains('match')) and !(#requestCypher.contains(' set '))", unless="#result.status!=200")
-    HttpResponse postCypher(String requestCypher, HttpHeaders clientRequestHeaders, RequestMethod clientRequestMethod) {
+    HttpResponse postCypher(String requestCypher, HttpHeaders clientRequestHeaders, HttpMethod clientRequestMethod) {
         log.debug("postCypher(requestCypher=${requestCypher} type=${requestCypher.getClass().getName()}, clientRequestHeaders=${clientRequestHeaders})")
         Map backendRequestHeaders = httpUtil.copyRequestHeaders(
                 clientRequestHeaders,
@@ -35,14 +36,14 @@ class Neo4jProxyService {
         try {
             HttpResponse response
             switch (clientRequestMethod) {
-                case RequestMethod.OPTIONS:
+                case HttpMethod.OPTIONS:
                     response = neo4jClient.options(
                             path: '/db/data/cypher',
                             body: requestCypher,
                             headers: backendRequestHeaders
                     )
                     break
-                case RequestMethod.POST:
+                case HttpMethod.POST:
                     response = neo4jClient.post(
                             path: '/db/data/cypher',
                             body: requestCypher,
@@ -66,8 +67,8 @@ class Neo4jProxyService {
         log.info("cache neo4j evicted")
     }
 
-    @Cacheable(value="neo4j", key="#requestUri", condition="#requestMethod = RequestMethod.GET", unless="#result.status!=200")
-    HttpResponse doNeo4jRequest(String requestUri, HttpHeaders clientRequestHeaders, RequestMethod clientRequestMethod, String clientRequestBody) {
+    @Cacheable(value="neo4j", key="#requestUri", condition="#clientRequestMethod == T(org.springframework.http.HttpMethod).GET", unless="#result.status!=200")
+    HttpResponse doNeo4jRequest(String requestUri, HttpHeaders clientRequestHeaders, HttpMethod clientRequestMethod, String clientRequestBody) {
         log.debug("doNeo4jRequest(requestUri=${requestUri} method=${clientRequestMethod}, clientRequestHeaders=${clientRequestHeaders}, body=${clientRequestBody})")
         Map backendRequestHeaders = httpUtil.copyRequestHeaders(
                 clientRequestHeaders,
@@ -78,14 +79,14 @@ class Neo4jProxyService {
         try {
             HttpResponse response
             switch (clientRequestMethod) {
-                case RequestMethod.OPTIONS:
+                case HttpMethod.OPTIONS:
                     log.trace("neo4jClient.options(path: ${requestUri}, body: ${clientRequestBody}, headers: ${backendRequestHeaders})")
                     response = neo4jClient.options(
                             path: requestUri,
                             headers: backendRequestHeaders
                     )
                     break
-                case RequestMethod.POST:
+                case HttpMethod.POST:
                     log.trace("neo4jClient.post(path: ${requestUri}, body: ${clientRequestBody}, headers: ${backendRequestHeaders})")
                     response = neo4jClient.post(
                             path: requestUri,
@@ -93,7 +94,7 @@ class Neo4jProxyService {
                             headers: backendRequestHeaders
                     )
                     break
-                case RequestMethod.PUT:
+                case HttpMethod.PUT:
                     log.trace("neo4jClient.post(path: ${requestUri}, body: ${clientRequestBody}, headers: ${backendRequestHeaders})")
                     response = neo4jClient.put(
                             path: requestUri,
@@ -101,7 +102,7 @@ class Neo4jProxyService {
                             headers: backendRequestHeaders
                     )
                     break
-                case RequestMethod.DELETE:
+                case HttpMethod.DELETE:
                     log.trace("neo4jClient.post(path: ${requestUri}, body: ${clientRequestBody}, headers: ${backendRequestHeaders})")
                     response = neo4jClient.delete(
                             path: requestUri,
@@ -109,7 +110,7 @@ class Neo4jProxyService {
                             headers: backendRequestHeaders
                     )
                     break
-                case RequestMethod.PATCH:
+                case HttpMethod.PATCH:
                     log.trace("neo4jClient.post(path: ${requestUri}, body: ${clientRequestBody}, headers: ${backendRequestHeaders})")
                     response = neo4jClient.patch(
                             path: requestUri,
@@ -117,14 +118,14 @@ class Neo4jProxyService {
                             headers: backendRequestHeaders
                     )
                     break
-                case RequestMethod.GET:
+                case HttpMethod.GET:
                     log.trace("neo4jClient.post(path: ${requestUri}, headers: ${backendRequestHeaders})")
                     response = neo4jClient.get(
                             path: requestUri,
                             headers: backendRequestHeaders
                     )
                     break
-                case RequestMethod.HEAD:
+                case HttpMethod.HEAD:
                     log.trace("neo4jClient.post(path: ${requestUri}, headers: ${backendRequestHeaders})")
                     response = neo4jClient.head(
                             path: requestUri,

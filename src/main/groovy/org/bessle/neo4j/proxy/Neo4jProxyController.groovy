@@ -32,24 +32,53 @@ class Neo4jProxyController {
     @Autowired
     HttpUtil httpUtil
 
-    @RequestMapping(value = "/cypher", method = RequestMethod.POST)
-    ResponseEntity<String> postCypher(HttpEntity<String> clientCypherRequest) {
+    @RequestMapping(value = "/cypher", method = [RequestMethod.POST, RequestMethod.OPTIONS])
+    ResponseEntity<String> postCypher(HttpEntity<String> clientCypherRequest, HttpMethod clientRequestMethod) {
         log.info("postCypher")
-        return handleCypherRequest(clientCypherRequest, RequestMethod.POST)
 
+        // extract call parameter values
+        String cypher = clientCypherRequest.body
+        log.info("cypher query = ${cypher}")
+        HttpHeaders clientRequestHeaders = clientCypherRequest.headers
+
+        // forward client request to backend
+        HttpResponseDecorator backendResponse = neo4jProxyService.postCypher(cypher, clientRequestHeaders, clientRequestMethod)
+        if (cypher =~ / set /) {
+            neo4jProxyService.clearCache()
+        }
+
+        // process backend response
+        String clientResponseBody = JsonOutput.toJson(backendResponse.data)
+        log.info("clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
+        HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
+
+        // construct client response headers
+        HttpHeaders clientResponseHeaders = httpUtil.copyResponseHeaders(
+                backendResponse.headers,
+                [HttpHeaders.CONTENT_LENGTH],
+                ["X-Test": "1234"]
+        )
+        if (backendResponse.isSuccess()) {
+            clientResponseHeaders.setCacheControl("max-age=3600")
+        }
+        log.debug("clientResponseHeaders: ${clientResponseHeaders}")
+
+        // return response
+        return new ResponseEntity<String>(
+                clientResponseBody,
+                clientResponseHeaders,
+                clientResponseStatus
+        )
     }
 
-    @RequestMapping(value = "/cypher", method = RequestMethod.OPTIONS)
-    ResponseEntity<String> optionsCypher(HttpEntity<String> clientCypherRequest) {
-        log.info("optionsCypher")
-        return handleCypherRequest(clientCypherRequest, RequestMethod.OPTIONS)
-    }
 
-    @RequestMapping(value = "*")
-    ResponseEntity<String>  proxyRequest(HttpServletRequest clientRequest,
-                            @RequestHeader HttpHeaders clientRequestHeaders,
-                            HttpMethod clientRequestMethod,
-                            @RequestBody clientRequestBody) {
+    @RequestMapping(value="**", method = [RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE])
+    ResponseEntity<String>  proxyRequest(
+            HttpServletRequest clientRequest,
+            @RequestHeader HttpHeaders clientRequestHeaders,
+            HttpMethod clientRequestMethod,
+            @RequestBody clientRequestBody)
+    {
         log.info("clientRequestMethod =${clientRequestMethod}")
         String clientRequestURI = clientRequest.getRequestURI()
         log.info("clientRequestURI = ${clientRequestURI}")
@@ -86,16 +115,27 @@ class Neo4jProxyController {
         )
     }
 
+    @RequestMapping(value="**", method = [RequestMethod.GET, RequestMethod.HEAD, RequestMethod.OPTIONS])
+    ResponseEntity<String>  proxySimpleRequest(
+            HttpServletRequest clientRequest,
+            @RequestHeader HttpHeaders clientRequestHeaders,
+            HttpMethod clientRequestMethod)
+    {
+        log.info("proxySimpleRequest: clientRequestMethod =${clientRequestMethod}")
+        String clientRequestURI = clientRequest.getRequestURI()
+        log.info("proxySimpleRequest: clientRequestURI = ${clientRequestURI}")
+        String requestURL = clientRequest.getRequestURL()
+        log.info("proxySimpleRequest: requestURL = ${requestURL}")
+        String servletPath = clientRequest.getServletPath();
+        log.info("proxySimpleRequest: servletPath = ${servletPath}")
 
-    private ResponseEntity<String> handleCypherRequest(HttpEntity<String> clientCypherRequest, RequestMethod clientRequestMethod) {
-        // extract call parameter values
-        String clientRequestCypher = clientCypherRequest.body
-        HttpHeaders clientRequestHeaders = clientCypherRequest.headers
+        HttpResponseDecorator backendResponse = neo4jProxyService.doNeo4jRequest(clientRequestURI, clientRequestHeaders, clientRequestMethod, null)
+        if (clientRequestMethod.toString() in ['POST','PUT','PATCH','DELETE']) {
+            neo4jProxyService.clearCache()
+        }
 
-        // forward client request to backend
-        HttpResponseDecorator backendResponse = neo4jProxyService.postCypher(clientRequestCypher, clientRequestHeaders, clientRequestMethod)
         String clientResponseBody = JsonOutput.toJson(backendResponse.data)
-        log.info("clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
+        log.info("proxySimpleRequest: clientResponseBody=${clientResponseBody.length()<=50 ? clientResponseBody : clientResponseBody.take(50)+'.....'} of type ${clientResponseBody.getClass().getName()}")
         HttpStatus clientResponseStatus = HttpStatus.valueOf(backendResponse.status)
 
         // construct client response headers
@@ -104,10 +144,10 @@ class Neo4jProxyController {
                 [HttpHeaders.CONTENT_LENGTH],
                 ["X-Test": "1234"]
         )
-        if (backendResponse.isSuccess()) {
+        if (backendResponse.isSuccess() && clientRequestMethod.toString() in ['GET','HEAD','OPTIONS']) {
             clientResponseHeaders.setCacheControl("max-age=3600")
         }
-        log.debug("clientResponseHeaders: ${clientResponseHeaders}")
+        log.debug("proxySimpleRequest: clientResponseHeaders: ${clientResponseHeaders}")
 
         // return response
         return new ResponseEntity<String>(

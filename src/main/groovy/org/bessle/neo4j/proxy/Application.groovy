@@ -45,7 +45,7 @@ class Application {
 		[message: "Hello World"]
 	}
 
-    @Value('${neo4j.server.url}')
+    @Value('${neo4j.server.url}:${neo4j.server.port}')
     String neo4jServerUrl
 
     static void main(String[] args) throws Exception {
